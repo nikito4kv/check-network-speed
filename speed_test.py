@@ -74,6 +74,16 @@ def print_summary(measurements):
     print(f"Скорость скачивания:      {speed:.2f} Мбит/с")
 
 
+def enable_utf8_output():
+    """Настраивает вывод так, чтобы он одинаково работал в любой консоли.
+
+    UTF-8 — иначе в Windows русский текст ломается в Git Bash и при выводе в файл.
+    Построчный вывод — иначе в Git Bash строки появляются все разом в конце замера.
+    """
+    sys.stdout.reconfigure(encoding="utf-8", line_buffering=True)
+    sys.stderr.reconfigure(encoding="utf-8")
+
+
 def parse_args():
     parser = argparse.ArgumentParser(
         description=f"Делает {REQUESTS_COUNT} запросов к адресу и считает скорость скачивания."
@@ -83,6 +93,7 @@ def parse_args():
 
 
 def main():
+    enable_utf8_output()
     url = parse_args().url
     print(f"Адрес: {url}")
     print(f"Запросов: {REQUESTS_COUNT}, по очереди\n")
