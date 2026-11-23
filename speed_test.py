@@ -29,6 +29,16 @@ class Measurement(NamedTuple):
         return self.wait_seconds + self.download_seconds
 
 
+class Summary(NamedTuple):
+    """Итоги по всем запросам."""
+
+    total_bytes: int
+    mean_request_seconds: float
+    median_request_seconds: float
+    mean_wait_seconds: float
+    speed_mbps: float  # мегабиты в секунду
+
+
 def download(url):
     """Скачивает ответ целиком и возвращает Measurement."""
     request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
@@ -57,21 +67,30 @@ def to_megabits_per_second(size_bytes, seconds):
     return size_bytes * BITS_IN_BYTE / BITS_IN_MEGABIT / seconds
 
 
-def print_summary(measurements):
+def summarize(measurements):
+    """Считает итоги по списку замеров."""
     request_times = [m.total_seconds for m in measurements]
     wait_times = [m.wait_seconds for m in measurements]
     total_bytes = sum(m.size_bytes for m in measurements)
     total_download_seconds = sum(m.download_seconds for m in measurements)
 
-    # Скорость считаем только по времени скачивания, без подключения к серверу
-    speed = to_megabits_per_second(total_bytes, total_download_seconds)
+    return Summary(
+        total_bytes=total_bytes,
+        mean_request_seconds=statistics.mean(request_times),
+        median_request_seconds=statistics.median(request_times),
+        mean_wait_seconds=statistics.mean(wait_times),
+        # Скорость считаем только по времени скачивания, без подключения к серверу
+        speed_mbps=to_megabits_per_second(total_bytes, total_download_seconds),
+    )
 
+
+def print_summary(summary):
     print()
-    print(f"Скачано всего:            {to_megabytes(total_bytes):.2f} МБ")
-    print(f"Среднее время запроса:    {statistics.mean(request_times):.2f} с")
-    print(f"Медиана времени запроса:  {statistics.median(request_times):.2f} с")
-    print(f"Среднее ожидание ответа:  {statistics.mean(wait_times):.2f} с")
-    print(f"Скорость скачивания:      {speed:.2f} Мбит/с")
+    print(f"Скачано всего:            {to_megabytes(summary.total_bytes):.2f} МБ")
+    print(f"Среднее время запроса:    {summary.mean_request_seconds:.2f} с")
+    print(f"Медиана времени запроса:  {summary.median_request_seconds:.2f} с")
+    print(f"Среднее ожидание ответа:  {summary.mean_wait_seconds:.2f} с")
+    print(f"Скорость скачивания:      {summary.speed_mbps:.2f} Мбит/с")
 
 
 def enable_utf8_output():
@@ -115,7 +134,7 @@ def main():
             f"{to_megabytes(measurement.size_bytes):.2f} МБ"
         )
 
-    print_summary(measurements)
+    print_summary(summarize(measurements))
     return 0
 
 
